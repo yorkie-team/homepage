@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
   reactStrictMode: true,
   swcMinify: true,
   images: {
@@ -10,25 +11,29 @@ const nextConfig = {
   env: {
     nextImageExportOptimizer_imageFolderPath: 'public/assets/images',
     nextImageExportOptimizer_exportFolderPath: 'out',
-    nextImageExportOptimizer_quality: 75,
-    nextImageExportOptimizer_storePicturesInWEBP: true,
-    nextImageExportOptimizer_generateAndUseBlurImages: true,
+    nextImageExportOptimizer_quality: '75',
+    nextImageExportOptimizer_storePicturesInWEBP: 'true',
+    nextImageExportOptimizer_generateAndUseBlurImages: 'true',
     NEXT_PUBLIC_BUILT_AT: new Date().toUTCString(),
   },
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
   webpack: (config) => {
-    config.module.rules.push({
-      test: /\.svg$/i,
-      issuer: /\.[jt]sx?$/,
-      use: [
-        {
-          loader: '@svgr/webpack',
-          options: {
-            svgo: false,
-          },
-        },
-      ],
-    });
+    // Grab the existing rule that handles SVG imports
+    const fileLoaderRule = config.module.rules.find((rule) => rule.test?.test?.('.svg'));
+    config.module.rules.push(
+      {
+        ...fileLoaderRule,
+        test: /\.svg$/i,
+        resourceQuery: /url/, // *.svg?url
+      },
+      {
+        test: /\.svg$/i,
+        issuer: fileLoaderRule.issuer,
+        resourceQuery: { not: [...fileLoaderRule.resourceQuery.not, /url/] }, // exclude if *.svg?url
+        use: ['@svgr/webpack'],
+      },
+    );
+    fileLoaderRule.exclude = /\.svg$/i;
     return config;
   },
 };
